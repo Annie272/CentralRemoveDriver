@@ -247,14 +247,91 @@
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const reasonToDelete = document.getElementById("reasonToDelete");
+    document.addEventListener("DOMContentLoaded", function () {
+  const reasonToDelete = document.getElementById("reasonToDelete");
   const additionalRemarksDiv = document.getElementById("additionalRemarksDiv");
   const additionalRemarks = document.getElementById("additionalRemarks");
 
+  const form = document.getElementById("mainForm");
+  const reviewBtn = document.getElementById("reviewBtn");
+  const dialog = document.getElementById("dialog");
+  const dialogTitle = document.getElementById("dialogTitle");
+  const missingFieldsList = document.getElementById("missingFieldsList");
+  const proceedBtn = document.getElementById("proceedBtn");
+  const editBtn = document.getElementById("editBtn");
+
+  // Date picker initialization omitted for brevity (same as in your current code)
+  new Pikaday({
+    field: document.getElementById("00NU7000005zuLl"),
+    format: "MM/DD/YYYY",
+    toString(date) {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
+    },
+    parse(dateString) {
+      const [month, day, year] = dateString.split("/");
+      return new Date(year, month - 1, day);
+    },
+  });
+
+  // List of fields for validation
+  const fieldData = [
+    { id: "email", label: "Email", type: "email" },
+    { id: "00NU7000005zuX3", label: "Policy Number" },
+    { id: "00NU7000005zuLl", label: "Effective Date (MM/DD/YYYY)", type: "date" },
+    { id: "driverName", label: "Driver Name" },
+    { id: "reasonToDelete", label: "Reason to delete driver" },
+    {
+      id: "additionalRemarks",
+      label: "Additional Remarks",
+      dependsOn: [
+        "Still in household, but re-written with another company",
+        "Other",
+      ],
+    },
+  ];
+
+  // Validation function
+  function validateFields() {
+    const missing = [];
+    fieldData.forEach((field) => {
+      if (field.type === "email") {
+        const input = document.getElementById(field.id);
+        if (!input.value.trim() || !input.checkValidity()) {
+          missing.push(field.label);
+        }
+      } else if (field.type === "date") {
+        const val = document.getElementById(field.id).value.trim();
+        const dateRegex =
+          /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/(1[0-9]{3}|2[0-9]{3}|30[0-9]{2})$/;
+        if (!val || !dateRegex.test(val)) {
+          missing.push(field.label);
+        }
+      } else if (field.id === "additionalRemarks") {
+        // Required only if visible
+        if (
+          !additionalRemarksDiv.classList.contains("hidden") &&
+          !additionalRemarks.value.trim()
+        ) {
+          missing.push(field.label);
+        }
+      } else {
+        const input = document.getElementById(field.id);
+        if (!input.value.trim()) {
+          missing.push(field.label);
+        }
+      }
+    });
+    return missing;
+  }
+
+  // Show/hide additional remarks and handle divorced logic
   reasonToDelete.addEventListener("change", function () {
     if (
-      reasonToDelete.value === "Still in household, but re-written with another company" ||
+      reasonToDelete.value ===
+        "Still in household, but re-written with another company" ||
       reasonToDelete.value === "Other"
     ) {
       additionalRemarksDiv.classList.remove("hidden");
@@ -264,117 +341,92 @@
       additionalRemarks.removeAttribute("required");
       additionalRemarks.value = "";
     }
-  });
 
-
-
-        // Date picker
-        new Pikaday({
-          field: document.getElementById("00NU7000005zuLl"),
-          format: "MM/DD/YYYY",
-          toString(date) {
-            const day = String(date.getDate()).padStart(2, "0");
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const year = date.getFullYear();
-            return `${month}/${day}/${year}`;
-          },
-          parse(dateString) {
-            const [month, day, year] = dateString.split("/");
-            return new Date(year, month - 1, day);
-          },
-        });
-
-        const form = document.getElementById("mainForm");
-        const reviewBtn = document.getElementById("reviewBtn");
-        const dialog = document.getElementById("dialog");
-        const dialogTitle = document.getElementById("dialogTitle");
-        const missingFieldsList = document.getElementById("missingFieldsList");
-        const proceedBtn = document.getElementById("proceedBtn");
-        const editBtn = document.getElementById("editBtn");
-
-        // Validation data
-        const fieldData = [
-          { id: "email", label: "Email", type: "email" },
-          { id: "00NU7000005zuX3", label: "Policy Number" },
-          {
-            id: "00NU7000005zuLl",
-            label: "Effective Date (MM/DD/YYYY)",
-            type: "date",
-          },
-          { id: "driverName", label: "Driver Name" },
-  { id: "reasonToDelete", label: "Reason to delete driver" },
-  { id: "additionalRemarks", label: "Additional Remarks", dependsOn: ["Still in household, but re-written with another company", "Other"] }
-
-        ];
-
-        function validateFields() {
-  const missing = [];
-  fieldData.forEach((field) => {
-    if (field.type === "email") {
-      const input = document.getElementById(field.id);
-      if (!input.value.trim() || !input.checkValidity()) {
-        missing.push(field.label);
-      }
-    } else if (field.type === "date") {
-      const val = document.getElementById(field.id).value.trim();
-      const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/(1[0-9]{3}|2[0-9]{3}|30[0-9]{2})$/;
-      if (!val || !dateRegex.test(val)) {
-        missing.push(field.label);
-      }
-    } else if (field.id === "additionalRemarks") {
-      // Required only if visible
-      if (!additionalRemarksDiv.classList.contains("hidden") && !additionalRemarks.value.trim()) {
-        missing.push(field.label);
-      }
+    // Block for Divorced: disable Review/Submit and only show Edit button
+    if (reasonToDelete.value === "Divorced") {
+      reviewBtn.disabled = true;
+      dialogTitle.textContent =
+        "For divorced please contact customer support; they can complete the request.";
+      missingFieldsList.innerHTML = "";
+      proceedBtn.classList.add("hidden"); 
+      dialog.classList.remove("hidden");
     } else {
-      const input = document.getElementById(field.id);
-      if (!input.value.trim()) {
-        missing.push(field.label);
-      }
+      reviewBtn.disabled = false;
+      proceedBtn.classList.remove("hidden"); 
     }
   });
-  return missing;
-}
 
-        reviewBtn.addEventListener("click", () => {
-          const missing = validateFields();
+  // Review button handler
+  reviewBtn.addEventListener("click", () => {
+   
+    if (reasonToDelete.value === "Divorced") {
+      dialogTitle.textContent =
+        "For divorced please contact customer support; they can complete the request.";
+      missingFieldsList.innerHTML = "";
+      proceedBtn.classList.add("hidden");       dialog.classList.remove("hidden");
+      return;
+    }
+    const missing = validateFields();
+    proceedBtn.classList.remove("hidden"); 
+    if (missing.length) {
+      dialogTitle.textContent =
+        "Below Mandatory Fields are missing and the Team will contact you shortly.";
+      missingFieldsList.innerHTML = missing
+        .map((f) => `<li>${f}</li>`)
+        .join("");
+    } else {
+      dialogTitle.textContent =
+        "All mandatory fields are completed. Ready to submit your request?";
+      missingFieldsList.innerHTML = "";
+    }
+    dialog.classList.remove("hidden");
+  });
 
-          if (missing.length) {
-            dialogTitle.textContent =
-              "Below Mandatory Fields are missing and the Team will contact you shortly.";
-            missingFieldsList.innerHTML = missing
-              .map((f) => `<li>${f}</li>`)
-              .join("");
-          } else {
-            dialogTitle.textContent =
-              "All mandatory fields are completed. Ready to submit your request?";
-            missingFieldsList.innerHTML = "";
-          }
+  // Edit button handler
+  editBtn.addEventListener("click", () => {
+    dialog.classList.add("hidden");
+  });
 
-          dialog.classList.remove("hidden");
-        });
+  
+  proceedBtn.addEventListener("click", () => {
+    // Block submit if Divorced or missing fields
+    if (reasonToDelete.value === "Divorced") {
+      dialog.classList.add("hidden");
+      return;
+    }
+    const missing = validateFields();
+    if (missing.length) {
+      // Prevent submission if there are missing fields
+      dialogTitle.textContent =
+        "Below Mandatory Fields are missing and the Team will contact you shortly.";
+      missingFieldsList.innerHTML = missing
+        .map((f) => `<li>${f}</li>`)
+        .join("");
+      dialog.classList.remove("hidden");
+      return;
+    }
+    dialog.classList.add("hidden");
+    form.submit();
+  });
 
-        editBtn.addEventListener("click", () => {
-          dialog.classList.add("hidden");
-        });
+  
+  window.addEventListener("click", (e) => {
+    if (e.target === dialog) {
+      dialog.classList.add("hidden");
+    }
+  });
 
-        proceedBtn.addEventListener("click", () => {
-          dialog.classList.add("hidden");
-          form.submit();
-        });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !dialog.classList.contains("hidden")) {
+      dialog.classList.add("hidden");
+    }
+  });
+});
 
-        window.addEventListener("click", (e) => {
-          if (e.target === dialog) {
-            dialog.classList.add("hidden");
-          }
-        });
 
-        window.addEventListener("keydown", (e) => {
-          if (e.key === "Escape" && !dialog.classList.contains("hidden")) {
-            dialog.classList.add("hidden");
-          }
-        });
-      });
+
+
+      
     </script>
   </body>
 </html>
