@@ -285,54 +285,67 @@
 
   // List of fields for validation
   const fieldData = [
-    { id: "email", label: "Email", type: "email" },
-    { id: "00NU7000005zuX3", label: "Policy Number" },
-    { id: "00NU7000005zuLl", label: "Effective Date (MM/DD/YYYY)", type: "date" },
-    { id: "driverName", label: "Driver Name" },
-    { id: "reasonToDelete", label: "Reason to delete driver" },
-    {
-      id: "additionalRemarks",
-      label: "Additional Remarks",
-      dependsOn: [
-        "Still in household, but re-written with another company",
-        "Other",
-      ],
-    },
-  ];
+  { id: "email", label: "Email", type: "email" },
+  { id: "00NU7000005zuX3", label: "Policy Number" },
+  { id: "00NU7000005zuLl", label: "Effective Date (MM/DD/YYYY)", type: "date" },
+  { id: "driverName", label: "Driver Name" },
+  { id: "reasonToDelete", label: "Reason to delete driver" },
+  {
+    id: "additionalRemarks",
+    label: "Additional Remarks",
+    dependsOn: [
+      "Still in household, but re-written with another company",
+      "Other",
+    ],
+  },
+  // Pseudo field for radio group
+  { id: "requestType", label: "Request Type", type: "radio" }
+];
+function isRequestTypeSelected() {
+  const selected = document.querySelector(
+    'input[name="Is_this_a_quote_or_a_change_request__c"]:checked'
+  );
+  return !!selected;
+}
+
 
   // Validation function
   function validateFields() {
-    const missing = [];
-    fieldData.forEach((field) => {
-      if (field.type === "email") {
-        const input = document.getElementById(field.id);
-        if (!input.value.trim() || !input.checkValidity()) {
-          missing.push(field.label);
-        }
-      } else if (field.type === "date") {
-        const val = document.getElementById(field.id).value.trim();
-        const dateRegex =
-          /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/(1[0-9]{3}|2[0-9]{3}|30[0-9]{2})$/;
-        if (!val || !dateRegex.test(val)) {
-          missing.push(field.label);
-        }
-      } else if (field.id === "additionalRemarks") {
-        // Required only if visible
-        if (
-          !additionalRemarksDiv.classList.contains("hidden") &&
-          !additionalRemarks.value.trim()
-        ) {
-          missing.push(field.label);
-        }
-      } else {
-        const input = document.getElementById(field.id);
-        if (!input.value.trim()) {
-          missing.push(field.label);
-        }
+  const missing = [];
+  fieldData.forEach((field) => {
+    if (field.type === "radio" && field.id === "requestType") {
+      if (!isRequestTypeSelected()) {
+        missing.push(field.label);
       }
-    });
-    return missing;
-  }
+    } else if (field.type === "email") {
+      const input = document.getElementById(field.id);
+      if (!input.value.trim() || !input.checkValidity()) {
+        missing.push(field.label);
+      }
+    } else if (field.type === "date") {
+      const val = document.getElementById(field.id).value.trim();
+      const dateRegex =
+        /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/(1[0-9]{3}|2[0-9]{3}|30[0-9]{2})$/;
+      if (!val || !dateRegex.test(val)) {
+        missing.push(field.label);
+      }
+    } else if (field.id === "additionalRemarks") {
+      if (
+        !additionalRemarksDiv.classList.contains("hidden") &&
+        !additionalRemarks.value.trim()
+      ) {
+        missing.push(field.label);
+      }
+    } else {
+      const input = document.getElementById(field.id);
+      if (!input.value.trim()) {
+        missing.push(field.label);
+      }
+    }
+  });
+  return missing;
+}
+
 
   // Show/hide additional remarks based on reason
   reasonToDelete.addEventListener("change", function () {
@@ -360,6 +373,17 @@ reviewBtn.addEventListener("click", () => {
 
   const missingData = [];
   const completedData = [];
+  // Handle Request Type radios for captured / missing data
+const selectedReq = document.querySelector(
+  'input[name="Is_this_a_quote_or_a_change_request__c"]:checked'
+);
+
+if (!selectedReq) {
+  missingData.push("Request Type");
+} else {
+  completedData.push(`Request Type = ${selectedReq.value}`);
+}
+
 
   fieldData.forEach((field) => {
     const inputElem = document.getElementById(field.id);
